@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>คำนวณภาษี ตอบทีละข้อ ไม่ต้องรู้เรื่องภาษี</title>
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#16233b;--mute:#5b6b82;--line:#d5dde7;--acc:#0b6e5b;--hi:#3fb8a0;--dark:#16233b;--f:"Noto Sans Thai","Sarabun","Leelawadee UI",Tahoma,system-ui,sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1624;--card:#17213a;--ink:#e8eef8;--mute:#9aa9c2;--line:#2a3856;--acc:#4fd1b5;--dark:#0b1220}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 var(--f);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.w{max-width:640px;margin:0 auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.9rem;color:var(--mute)}
+.chip{background:var(--dark);color:#fff;border-radius:99px;padding:3px 14px;font-variant-numeric:tabular-nums}
+.prog{height:6px;background:var(--line);border-radius:3px;margin:10px 0 18px;overflow:hidden}.prog i{display:block;height:100%;background:var(--acc);transition:width .25s}
+h1{font-size:1.55rem;line-height:1.3;margin:0 0 6px}
+.sub{color:var(--mute);margin:0 0 16px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 16px;margin-bottom:12px}
+.fl{display:block;padding:12px 0;border-top:1px solid var(--line)}.box>.fl:first-child{border-top:0}
+.fl b{display:block;font-weight:600}.fl small{display:block;color:var(--mute);font-size:.86rem;line-height:1.4;margin-bottom:6px}
+input[type=number],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-height:46px}
+input[type=number]{font-variant-numeric:tabular-nums}
+input:focus,select:focus,button:focus-visible,.card:focus-within{outline:3px solid var(--hi);outline-offset:1px}
+.card{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer}
+.card:has(input:checked){border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--card))}
+.card input{width:22px;height:22px;margin-top:4px;accent-color:var(--acc);flex:none}
+.card small{display:block;color:var(--mute);font-size:.86rem;line-height:1.4}
+.st{display:flex;align-items:center;gap:12px}
+.st button{width:46px;height:46px;font-size:1.4rem;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.st span{min-width:2ch;text-align:center;font-size:1.3rem;font-weight:700}
+.nav{display:flex;gap:10px;margin-top:16px}
+.nav button,.rs{font:inherit;cursor:pointer;border-radius:10px;padding:12px 18px;min-height:48px}
+.nav .p{flex:1;background:var(--acc);color:#fff;border:0;font-weight:700}.nav .g{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.nav .p:disabled{opacity:.4;cursor:not-allowed}
+.hero{background:var(--dark);color:#fff;border-radius:14px;padding:20px;margin-bottom:12px}
+.hero .big{font-size:2.6rem;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+.hero p{margin:4px 0 0;opacity:.85}
+.ex{margin:0;padding:0;list-style:none}.ex li{padding:8px 0;border-top:1px solid var(--line)}.ex li:first-child{border:0}
+.ex b{font-variant-numeric:tabular-nums}
+.lr{display:grid;grid-template-columns:76px 1fr 96px;gap:8px;align-items:center;font-size:.85rem;padding:3px 0;font-variant-numeric:tabular-nums}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc)}.lr span:last-child{text-align:right}
+.tip{background:color-mix(in srgb,var(--acc) 12%,var(--card));border-radius:10px;padding:12px 14px;margin-top:10px;font-size:.95rem}
+.tip.w2{background:#fff3e0;color:#5a3600}
+.priv{font-size:.82rem;color:var(--mute);margin-top:22px;text-align:center}
+</style>
+</head>
+<body>
+<div class="w">
+<div class="top"><span id="stp"></span><span class="chip" id="chip">ภาษีโดยประมาณ 0 บาท</span></div>
+<div class="prog"><i id="pg"></i></div>
+<main id="v"></main>
+<p class="priv">คำนวณในเครื่องคุณเท่านั้น ไม่ส่งข้อมูลออกไปไหน ไม่เก็บข้อมูล ปิดหน้านี้ข้อมูลก็หาย<br>เป็นตัวเลขประมาณการเพื่อวางแผน ก่อนยื่นจริงตรวจกับกรมสรรพากรอีกครั้ง</p>
+</div>
+<script>
+// ===== ค่าที่แก้ได้เมื่อกฎหมายเปลี่ยน =====
+const BR=[[150000,0],[300000,.05],[500000,.10],[750000,.15],[1e6,.20],[2e6,.25],[5e6,.30],[Infinity,.35]];
+const ALT={rate:.005,min:120000}, EXP_CAP=1e5;
+// =====================================
+const V={},$=id=>document.getElementById(id);
+const n=k=>Math.max(0,parseFloat(V[k])||0);
+const e=s=>String(s??'').replace(/[&<>"']/g,'');
+const F=v=>Math.round(v).toLocaleString('th-TH');
+const F2=v=>v.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+const INC=[
+['i1','เงินเดือนประจำ','มีบริษัทหรือนายจ้างจ่ายให้ทุกเดือน'],
+['i2','งานฟรีแลนซ์ รับจ้างทั่วไป นายหน้า','ได้เงินเป็นงาน ๆ ไม่ใช่เงินเดือน'],
+['i8','ขายของ ทำธุรกิจ ขายออนไลน์','รวมถึงบริการต่าง ๆ ที่ทำเป็นอาชีพ',[[60,'หักค่าใช้จ่ายเหมา 60% (ใช้กับกิจการส่วนใหญ่ที่กฎหมายกำหนด)'],[40,'หักเหมา 40%'],[30,'หักเหมา 30%'],[20,'หักเหมา 20%']]],
+['i5','ค่าเช่า','ให้เช่าบ้าน ห้อง ที่ดิน รถ',[[30,'บ้าน อาคาร รถ หักเหมา 30%'],[20,'ที่ดินเกษตร หักเหมา 20%'],[15,'ที่ดินอื่น หักเหมา 15%'],[10,'ทรัพย์สินอื่น หักเหมา 10%']]],
+['i4','ดอกเบี้ย เงินปันผล กำไรกองทุน','จากเงินฝาก หุ้น กองทุน'],
+['i6','อาชีพอิสระ รับงานเอง','หมอ ทนาย วิศวกร สถาปนิก นักบัญชี ศิลปิน',[[60,'แพทย์ หักเหมา 60%'],[30,'อาชีพอื่นในกลุ่มนี้ หักเหมา 30%']]],
+['i3','ค่าลิขสิทธิ์','เขียนหนังสือ ทำเพลง สิทธิบัตร'],
+['i7','รับเหมาก่อสร้างที่ออกวัสดุเอง','',[[60,'หักเหมา 60%']]]
+];
+const SAV=[
+['ประกัน',[['sso','ประกันสังคม','ถ้าเป็นพนักงาน บริษัทหักให้ทุกเดือน สูงสุด 9,000'],['life','ประกันชีวิต','สูงสุด 100,000'],['health','ประกันสุขภาพของตัวเอง','สูงสุด 25,000 (รวมกับประกันชีวิตแล้วไม่เกิน 100,000)'],['ph','ประกันสุขภาพของพ่อแม่','สูงสุด 15,000']]],
+['ออมเพื่อเกษียณและลงทุน',[['pvd','กองทุนสำรองเลี้ยงชีพ','ที่ทำงานหักจากเงินเดือนให้ ไม่เกิน 15% ของเงินเดือน'],['gpf','กบข. หรือ กอช.',''],['rmf','กองทุน RMF','ไม่เกิน 30% ของรายได้'],['ssf','กองทุน SSF','ไม่เกิน 30% ของรายได้ และไม่เกิน 200,000'],['pen','ประกันแบบบำนาญ','ไม่เกิน 15% ของรายได้ และไม่เกิน 200,000'],['esg','กองทุน Thai ESG','ไม่เกิน 30% ของรายได้ และไม่เกิน 300,000']]],
+['อื่น ๆ',[['home','ดอกเบี้ยบ้านที่กำลังผ่อน','สูงสุด 100,000'],['edon','บริจาคผ่าน e-Donation','หักได้ 2 เท่าของที่บริจาค'],['don','บริจาคทั่วไป','หักได้เท่าที่บริจาค'],['oth','ลดหย่อนอื่นที่คุณมีสิทธิ์','เช่น มาตรการช้อปของรัฐในปีนั้น ใส่เฉพาะยอดที่หักได้จริง']]]
+];
+
+function calc(){
+ const I={};
+ INC.forEach(([id])=>I[id]=0);
+ if(V.ci1)I.i1=n('m1')*12+n('b1');
+ ['i2','i3','i4','i5','i6','i7','i8'].forEach(id=>{if(V['c'+id])I[id]=n(id)});
+ const g=Object.values(I).reduce((a,b)=>a+b,0);
+ let exp=Math.min((I.i1+I.i2+I.i3)*.5,EXP_CAP);
+ INC.forEach(([id,,,o])=>{if(!o||!V['c'+id])return;
+  const s=V['s'+id]??o[0][0];exp+=s==='A'?Math.min(n('x'+id),I[id]):I[id]*s/100});
+ const net=Math.max(0,g-exp);
+ const pvd=Math.min(n('pvd'),.15*I.i1,5e5),rmf=Math.min(n('rmf'),.3*g,5e5),ssf=Math.min(n('ssf'),.3*g,2e5),pen=Math.min(n('pen'),.15*g,2e5);
+ const ret=Math.min(pvd+Math.min(n('gpf'),5e5)+rmf+ssf+pen,5e5);
+ const esg=Math.min(n('esg'),.3*g,3e5);
+ const ins=Math.min(Math.min(n('life'),1e5)+Math.min(n('health'),25000),1e5);
+ const fam=60000+(V.spouse?60000:0)+n('kids')*30000+n('kids2')*30000+Math.min(n('par'),4)*30000+n('dis')*60000+Math.min(n('preg'),60000);
+ const other=fam+Math.min(n('sso'),9000)+ins+Math.min(n('ph'),15000)+ret+esg+Math.min(n('home'),1e5)+n('oth');
+ const don=Math.min(.1*Math.max(0,net-other),n('don')+2*n('edon'));
+ const ded=other+don,taxable=Math.max(0,net-ded);
+ let lo=0,tax=0,rows=[],marg=0;
+ BR.forEach(([hi,r])=>{const part=Math.max(0,Math.min(taxable,hi)-lo);
+  rows.push({lo,hi,r,part,size:hi===Infinity?3e6:hi-lo,t:part*r});tax+=part*r;if(part>0)marg=r;lo=hi});
+ const b28=g-I.i1,alt=b28>ALT.min?b28*ALT.rate:0,useAlt=alt>tax;
+ const due=Math.max(tax,alt),bal=due-n('wht');
+ return{I,g,exp,net,ded,taxable,tax,alt,useAlt,due,bal,rows,marg,ret,esg,ins};
+}
+
+const stepper=(k,t,h)=>`<div class="fl"><b>${t}</b><small>${h}</small><div class="st"><button type="button" data-d="-1" data-s="${k}" aria-label="ลด">−</button><span>${n(k)}</span><button type="button" data-d="1" data-s="${k}" aria-label="เพิ่ม">+</button></div></div>`;
+const num=(k,t,h,ph)=>`<label class="fl"><b>${t}</b>${h?`<small>${h}</small>`:''}<input type="number" inputmode="decimal" min="0" data-k="${k}" value="${e(V[k])}" placeholder="${ph||'0'}"></label>`;
+
+const STEPS=[
+ {t:'คุณมีรายได้จากอะไรบ้าง',s:'ติ๊กได้หลายข้อ ถ้าไม่แน่ใจว่าตรงข้อไหน เลือกข้อที่ใกล้เคียงที่สุด',
+  h:()=>INC.map(([id,t,h])=>`<label class="card"><input type="checkbox" data-k="c${id}" ${V['c'+id]?'checked':''}><span><b>${t}</b><small>${h}</small></span></label>`).join(''),
+  ok:()=>INC.some(r=>V['c'+r[0]])},
+ {t:'ได้เงินมาเท่าไรในปีนี้',s:'ใส่ยอดก่อนหักภาษีและก่อนหักอะไรทั้งสิ้น ประมาณคร่าว ๆ ก็ได้',
+  h:()=>INC.filter(r=>V['c'+r[0]]).map(([id,t,,o])=>{
+   let h=id==='i1'?num('m1','เงินเดือนต่อเดือน (ก่อนหักประกันสังคมและภาษี)','','เช่น 30000')+num('b1','โบนัสและเงินพิเศษรวมทั้งปี','ไม่มีใส่ 0')
+        :num(id,t,'รวมทั้งปี');
+   if(o){const s=V['s'+id]??o[0][0];
+    h+=`<label class="fl"><b>วิธีหักค่าใช้จ่ายของ ${t}</b><small>ไม่แน่ใจ ใช้ตัวเลือกแรกไปก่อนได้</small><select data-k="s${id}" data-r="1">${o.map(x=>`<option value="${x[0]}" ${String(s)===String(x[0])?'selected':''}>${x[1]}</option>`).join('')}<option value="A" ${s==='A'?'selected':''}>หักตามค่าใช้จ่ายจริง (มีหลักฐาน)</option></select></label>`;
+    if(s==='A')h+=num('x'+id,'ค่าใช้จ่ายจริงทั้งปี','')}
+   return`<div class="box">${h}</div>`}).join('')},
+ {t:'มีภาษีที่ถูกหักไว้แล้วไหม',s:'นายจ้างหรือคนจ่ายเงินมักหักภาษีไว้ให้ ดูในเอกสาร "หนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ)" ถ้าไม่มีหรือไม่แน่ใจ ใส่ 0',
+  h:()=>`<div class="box">${num('wht','ภาษีที่ถูกหักไว้ทั้งปี (บาท)','')}</div>`},
+ {t:'มีใครให้ลดหย่อนภาษีได้บ้าง',s:'ทุกคนได้ลดหย่อนส่วนตัว 60,000 บาทอยู่แล้ว ข้อที่เหลือเลือกเฉพาะที่ตรงกับคุณ',
+  h:()=>`<label class="card"><input type="checkbox" data-k="spouse" ${V.spouse?'checked':''}><span><b>มีคู่สมรสที่ไม่มีรายได้</b><small>ลดหย่อน 60,000</small></span></label><div class="box">`
+   +stepper('kids','ลูก (กี่คน)','คนละ 30,000')+stepper('kids2','ลูกคนที่ 2 ขึ้นไปที่เกิดตั้งแต่ปี 2561 (กี่คน)','ลดเพิ่มอีกคนละ 30,000')
+   +stepper('par','พ่อแม่ที่เลี้ยงดู (กี่คน)','คนละ 30,000 สูงสุด 4 คน')+stepper('dis','ผู้พิการที่เลี้ยงดู (กี่คน)','คนละ 60,000')
+   +num('preg','ค่าฝากครรภ์และคลอดบุตร (บาท)','ตามที่จ่ายจริง สูงสุด 60,000')+'</div>'},
+ {t:'ออมเงินหรือซื้อประกันอะไรไว้ไหม',s:'ใส่ยอดที่จ่ายจริงทั้งปี ข้อไหนไม่มีก็เว้นไว้ ระบบจำกัดเพดานตามกฎหมายให้เอง',
+  h:()=>SAV.map(([g,l])=>`<h3 style="margin:16px 0 6px;font-size:1.05rem">${g}</h3><div class="box">${l.map(x=>num(x[0],x[1],x[2])).join('')}</div>`).join('')}
+];
+const RES=STEPS.length;let step=0;
+
+function result(){
+ const c=calc(),refund=c.bal<0;
+ let h=`<div class="hero"><p>${c.bal===0?'ผลการคำนวณ':refund?'คุณมีสิทธิ์ขอภาษีคืนประมาณ':'คุณต้องจ่ายภาษีเพิ่มประมาณ'}</p><div class="big">${F2(Math.abs(c.bal))} บาท</div>
+ <p>${c.g===c.I.i1&&c.g>0?'ยื่นแบบ ภ.ง.ด.91':'ยื่นแบบ ภ.ง.ด.90'}${c.taxable===0&&c.g>0?' (ภาษีเป็น 0 แต่ถ้ารายได้เกิน 120,000 บาท อาจยังต้องยื่นแบบ)':''}</p></div>`;
+ h+=`<div class="box"><ul class="ex"><li>รายได้รวมทั้งปี <b>${F(c.g)}</b> บาท</li><li>หักค่าใช้จ่าย <b>${F(c.exp)}</b> บาท</li><li>หักค่าลดหย่อนและบริจาค <b>${F(c.ded)}</b> บาท (รวมลดหย่อนส่วนตัว 60,000)</li><li>เหลือเงินที่ใช้คิดภาษี <b>${F(c.taxable)}</b> บาท</li><li>คิดภาษีตามอัตราแล้วได้ <b>${F2(c.tax)}</b> บาท</li>${c.alt>0?`<li>ภาษีขั้นต่ำ 0.5% ของรายได้นอกเงินเดือน <b>${F2(c.alt)}</b> บาท ${c.useAlt?'(ต้องใช้ยอดนี้ เพราะสูงกว่า)':''}</li>`:''}<li>ถูกหักไว้แล้ว <b>${F2(n('wht'))}</b> บาท</li></ul></div>`;
+ h+=`<div class="box" style="padding:12px 16px"><b>ภาษีของคุณตกอยู่ขั้นไหน</b><small style="display:block;color:var(--mute)">แต่ละขั้นคิดเฉพาะเงินส่วนที่อยู่ในขั้นนั้น ไม่ได้คิดทั้งก้อน</small>`
+  +c.rows.map(r=>`<div class="lr"><span>${r.hi===Infinity?F(r.lo)+'+':'ถึง '+F(r.hi)}</span><div class="bar"><i style="width:${Math.min(100,r.part/r.size*100)}%"></i></div><span>${r.r*100}% = ${F(r.t)}</span></div>`).join('')+'</div>';
+ if(c.marg>0){
+  const m=c.marg,g=c.g;
+  const room=[['ออมเพื่อเกษียณ (RMF, SSF, กองทุนสำรองเลี้ยงชีพ ฯลฯ)',5e5-c.ret],['กองทุน Thai ESG',Math.min(.3*g,3e5)-c.esg],['ประกันชีวิตและสุขภาพ',1e5-c.ins]].filter(x=>x[1]>0);
+  h+=`<div class="tip"><b>ลดภาษีได้อีกไหม</b><br>ทุก 10,000 บาทที่ลดหย่อนเพิ่ม จะลดภาษีได้ประมาณ ${F(10000*m)} บาท`+(room.length?'<br><br>สิทธิ์ที่คุณยังใช้ไม่เต็ม:'+room.map(x=>`<br>• ${x[0]} เหลืออีก ${F(x[1])} บาท (ประหยัดสูงสุดประมาณ ${F(x[1]*m)} บาท)`).join(''):'')+'</div>';
+ }
+ if(c.useAlt)h+=`<div class="tip w2">ภาษีปกติของคุณต่ำกว่าภาษีขั้นต่ำ จึงต้องเสียตามภาษีขั้นต่ำ ส่วนที่เกินอาจนำไปใช้เป็นเครดิตปีถัดไปได้ ตรวจเงื่อนไขกับกรมสรรพากร</div>`;
+ return h;
+}
+
+function go(d){
+ if(d!==undefined)step=Math.max(0,Math.min(RES,step+d));
+ const st=STEPS[step];
+ $('stp').textContent=step<RES?`ข้อ ${step+1} จาก ${RES}`:'ผลการคำนวณ';
+ $('pg').style.width=(step/RES*100)+'%';
+ let h=step<RES?`<h1>${st.t}</h1><p class="sub">${st.s}</p>${st.h()}`:`<h1>สรุปภาษีของคุณ</h1>${result()}`;
+ const last=step===RES-1,ok=step<RES?(!st.ok||st.ok()):true;
+ h+=`<div class="nav">${step>0?'<button class="g" type="button" data-n="-1">ย้อนกลับ</button>':''}`
+  +(step<RES?`<button class="p" type="button" data-n="1" ${ok?'':'disabled'}>${last?'ดูผลภาษี':step===2||step===3||step===4?'ถัดไป หรือข้ามถ้าไม่มี':'ถัดไป'}</button>`:'<button class="p" type="button" id="rs">เริ่มใหม่</button>')+'</div>';
+ $('v').innerHTML=h;chip();window.scrollTo(0,0);
+}
+function chip(){const c=calc();$('chip').textContent=`ภาษีโดยประมาณ ${F(Math.max(0,c.bal))} บาท`;
+ const b=document.querySelector('[data-n="1"]');if(b&&step===0)b.disabled=!STEPS[0].ok();}
+
+document.addEventListener('input',ev=>{const k=ev.target.dataset.k;if(!k)return;
+ V[k]=ev.target.type==='checkbox'?ev.target.checked:ev.target.value;chip();
+ if(ev.target.dataset.r)go();});
+document.addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t)return;
+ if(t.dataset.n)go(+t.dataset.n);
+ else if(t.dataset.s){V[t.dataset.s]=Math.max(0,n(t.dataset.s)+ +t.dataset.d);go()}
+ else if(t.id==='rs'){Object.keys(V).forEach(k=>delete V[k]);step=0;go(0)}});
+go(0);
+</script>
+</body>
+</html>
